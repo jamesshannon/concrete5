@@ -1,4 +1,4 @@
-<? 
+<?php  
 	defined('C5_EXECUTE') or die("Access Denied.");
 	if ($a->isGlobalArea()) {
 		$c = Page::getCurrentPage();
@@ -29,91 +29,57 @@
 	} else {
 		$deleteMessage = t('Do you want to delete this block?');
 	}
-	if ($_GET['step']) {
-		$step = "&step={$_GET['step']}";
-	}
-?>
-	
 
-<script type="text/javascript">
-$(function() {
-<? $id = $bID . $a->getAreaID(); ?>
+$id = $bID . $a->getAreaID();
 
-var ccm_menuObj<?=$id?> = {};
-ccm_menuObj<?=$id?>.type = "BLOCK";
-ccm_menuObj<?=$id?>.arHandle = '<?=$a->getAreaHandle()?>';
-ccm_menuObj<?=$id?>.aID = <?=$a->getAreaID()?>;
-ccm_menuObj<?=$id?>.bID = <?=$bID?>;
-ccm_menuObj<?=$id?>.cID = <?=$cID?>;
-<? if ($p->canWrite() && $btOriginal->getBlockTypeHandle() != BLOCK_HANDLE_STACK_PROXY) { ?>
-ccm_menuObj<?=$id?>.canWrite =true;
-<? if ($b->isEditable()) { ?>
-	ccm_menuObj<?=$id?>.hasEditDialog = true;
-<? } else { ?>
-	ccm_menuObj<?=$id?>.hasEditDialog = false;
-<? } ?>
-ccm_menuObj<?=$id?>.btName = "<?=t($btOriginal->getBlockTypeName())?>";
-ccm_menuObj<?=$id?>.width = <?=$btOriginal->getBlockTypeInterfaceWidth()?>;
-ccm_menuObj<?=$id?>.height = <?=$btOriginal->getBlockTypeInterfaceHeight()+$heightPlus ?>;
-<? } else if ($btOriginal->getBlockTypeHandle() == BLOCK_HANDLE_STACK_PROXY) { 
-	if (is_object($_bo)) {
-		$bi = $_bo->getInstance();
-	} else { 
-		$bi = $b->getInstance();
-	}
+$menuObj = array(
+	'id' => $id,
+	'type' => 'BLOCK',
+	'arHandle' => $a->getAreaHandle(),
+	'aID' => $a->getAreaID(),
+	'bID' => $bID,
+	'cID' => $cID,
+	'canCopyToScrapbook' => true,
+	'canModifyGroups' => $p->canEditBlockPermissions() && PERMISSIONS_MODEL != 'simple' && ! $a->isGlobalArea(),
+	'canScheduleGuestAccess' => PERMISSIONS_MODEL != 'simple' && $p->canGuestsViewThisBlock() && $p->canScheduleGuestAccess() && ! $a->isGlobalArea(),
+	'canDesign' => $p->canEditBlockDesign() && ENABLE_CUSTOM_DESIGN,
+	'canEditBlockCustomTemplate' => (bool) $p->canEditBlockCustomTemplate(),
+	'canAdmin' => (bool) $p->canEditBlockPermissions(),
+	'canDelete' => (bool) $p->canDeleteBlock(),
+	'deleteMessage' => $deleteMessage,
+	'canAliasBlockOut' => $c->isMasterCollection() && ! $a->isGlobalArea(),
+	'canSetupComposer' => (bool) CollectionType::getByID($c->getCollectionTypeID())->isCollectionTypeIncludedInComposer(),
+	'canArrange' => $p->canWrite() && ! $a->isGlobalArea(),
+	'editMessage' => $editMessage
+);
+
+if ($p->canWrite() && $btOriginal->getBlockTypeHandle() != BLOCK_HANDLE_STACK_PROXY) {
+	$menuObj = $menuObj + array(
+		'canWrite' => true,
+		'hasEditDialog' => $b->isEditable(),
+		'btName' => t($btOriginal->getBlockTypeName()),
+		'width' => $btOriginal->getBlockTypeInterfaceWidth(),
+		'height' => $btOriginal->getBlockTypeInterfaceHeight() + $heightPlus
+	);
+} else if ($btOriginal->getBlockTypeHandle() == BLOCK_HANDLE_STACK_PROXY) {
+	$bi = (is_object($_bo)) ? $bi = $_bo->getInstance() : $b->getInstance();
 	$stack = Stack::getByID($bi->stID);
+	
 	if (is_object($stack)) {
 		$sp = new Permissions($stack);
 		if ($sp->canWrite()) {
-		?>
-		ccm_menuObj<?=$id?>.canWriteStack =true;
-		ccm_menuObj<?=$id?>.stID = <?=$bi->stID?>;
-		<? } 
+			$menuObj = $menuObj + array(
+				'canWriteStack' => true,
+				'stID' => $bi->stID
+			);
+		}
 	}
 }
+
 ?>
-ccm_menuObj<?=$id?>.canCopyToScrapbook = true;
-<? if ($p->canEditBlockPermissions() && PERMISSIONS_MODEL != 'simple' && (!$a->isGlobalArea())) { ?>
-ccm_menuObj<?=$id?>.canModifyGroups = true;
-<? }
-if (PERMISSIONS_MODEL != 'simple' && $p->canGuestsViewThisBlock() && $p->canScheduleGuestAccess() && (!$a->isGlobalArea())) { ?>
-	ccm_menuObj<?=$id?>.canScheduleGuestAccess = true;
-<? }
-if ($p->canEditBlockDesign() && ENABLE_CUSTOM_DESIGN == true) { ?>
-	ccm_menuObj<?=$id?>.canDesign = true;
-<? } else { ?>
-	ccm_menuObj<?=$id?>.canDesign = false;
-<? }
-if ($p->canEditBlockCustomTemplate()) { ?>
-	ccm_menuObj<?=$id?>.canEditBlockCustomTemplate = true;
-<? } else { ?>
-	ccm_menuObj<?=$id?>.canEditBlockCustomTemplate = false;
-<? }
-if ($p->canEditBlockPermissions()) { ?>
-ccm_menuObj<?=$id?>.canAdmin = true;
-<? }
-if ($p->canDeleteBlock()) { ?>
-ccm_menuObj<?=$id?>.canDelete = true;
-ccm_menuObj<?=$id?>.deleteMessage = "<?=$deleteMessage?>";
-<? }
-if ($c->isMasterCollection() && !$a->isGlobalArea()) { ?>
-ccm_menuObj<?=$id?>.canAliasBlockOut = true;
-<?
-$ct = CollectionType::getByID($c->getCollectionTypeID());
-if ($ct->isCollectionTypeIncludedInComposer()) { ?>
-	ccm_menuObj<?=$id?>.canSetupComposer = true;
-<? }
 
-}
-
-if ($p->canWrite() && (!$a->isGlobalArea())) {  ?>
-	ccm_menuObj<?=$id?>.canArrange = true;
-<? 
-}
-if ($editMessage) { ?>
-ccm_menuObj<?=$id?>.editMessage = "<?=$editMessage?>";
-<? } ?>
-ccm_menuInit(ccm_menuObj<?=$id?>);
+<script type="text/javascript">
+$(function() {
+	ccm_menuInit(<?php echo json_encode($menuObj) ?>);
 });
-
 </script>
